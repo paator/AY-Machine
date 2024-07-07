@@ -22,7 +22,6 @@ const supportedFormats = [
   "STP",
   "VTX",
   "YM",
-  "TXT",
   "CHI",
   "DMM",
   "DST",
@@ -94,6 +93,7 @@ if (!existsSync("./zxtune123")) {
 
 const client = new Client({
   intents: ["Guilds", "GuildMessages", "MessageContent"],
+  failIfNotExists: false,
 });
 
 client.on("ready", () => {
@@ -108,7 +108,8 @@ client.on("messageCreate", async (message) => {
 
       if (isSupportedFormat(extension)) {
         const reply = await message.reply(
-          "🤖 Initiating file conversion to format audible by humans. Please standby..."
+          "🤖 Initiating file conversion to format audible by humans. Please standby...",
+          { failIfNotExists: false }
         );
 
         const moduleFilePath = `./${attachment.name}`;
