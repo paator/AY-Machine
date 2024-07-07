@@ -5,7 +5,7 @@ import { existsSync, writeFileSync, rmSync, readFileSync } from "fs";
 import fetch from "node-fetch";
 import { parseBuffer } from "music-metadata";
 
-const supportedFormats = [
+const supportedZXTuneFormats = [
   "ASC",
   "FTC",
   "GTR",
@@ -79,15 +79,33 @@ const supportedFormats = [
   "GBS",
   "GSF",
   "HES",
-  "KSS",
+  "KSS"
 ];
 
-function isSupportedFormat(extension) {
-  return supportedFormats.includes(extension.toUpperCase());
+const supportedFurnaceFormats =[
+  "FUR"
+];
+
+function isSupportedZXTuneFormat(extension) {
+  return supportedZXTuneFormats.includes(extension.toUpperCase());
+}
+
+function isSupportedFurnaceFormat(extension) {
+  return supportedFurnaceFormats.includes(extension.toUpperCase());
 }
 
 if (!existsSync("./zxtune123")) {
-  console.log("zxtune CLI not found");
+  console.log("zxtune CLI not found, quitting");
+  process.exit(1);
+}
+
+if (!existsSync("./furnace")) {
+  console.log("furnace CLI not found, quitting");
+  process.exit(1);
+}
+
+if (!existsSync("./ffmpeg")) {
+  console.log("ffmpeg not found, quitting");
   process.exit(1);
 }
 
@@ -102,11 +120,13 @@ client.on("ready", () => {
 
 client.on("messageCreate", async (message) => {
   if (!message.author.bot) {
+
+    // User attachment
     if (message.attachments.size && message.attachments.first()) {
       const attachment = message.attachments.first();
       const extension = attachment.name.split(".").pop();
 
-      if (isSupportedFormat(extension)) {
+      if (isSupportedZXTuneFormat(extension)) {
         const reply = await message.reply(
           "🤖 Initiating file conversion to format audible by humans. Please standby...",
           { failIfNotExists: false }
@@ -121,9 +141,7 @@ client.on("messageCreate", async (message) => {
 
           writeFileSync(moduleFilePath, buffer);
 
-          execSync(
-            `./zxtune123 --mp3 filename="${mp3FilePath}",bitrate=320 ${moduleFilePath}`
-          );
+          execSync(`./zxtune123 --mp3 filename="${mp3FilePath}",bitrate=320 ${moduleFilePath}`);
 
           const mp3Buffer = readFileSync(mp3FilePath);
 
@@ -155,8 +173,55 @@ client.on("messageCreate", async (message) => {
             rmSync(mp3FilePath);
           }
         }
+      } else if (isSupportedFurnaceFormat(extension)) {
+        const reply = await message.reply(
+          "🤖 Initiating file conversion to format audible by humans. Please standby...",
+          { failIfNotExists: false }
+        );
+
+        const moduleFilePath = `./${attachment.name}`;
+        const wavFilePath = `${moduleFilePath}.wav`;
+        const mp3FilePath = `${wavFilePath}.mp3`;
+
+        try {
+          const file = await fetch(attachment.url);
+          const buffer = Buffer.from(await file.arrayBuffer());
+
+          writeFileSync(moduleFilePath, buffer);
+
+          execSync(`./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`);
+          // Convert wave to mp3
+          execSync(`./ffmpeg -i ${wavFilePath} -ab 320k ${mp3FilePath} -hide_banner -loglevel error`);
+
+          const mp3Buffer = readFileSync(mp3FilePath);
+
+          await reply.edit({
+            content: `🎶 Your track is ready for listening! 🎧🔥`,
+            files: [
+              new AttachmentBuilder()
+                .setName(`${attachment.name}.mp3`)
+                .setFile(mp3Buffer),
+            ],
+          });
+        } catch (error) {
+          console.error("Error during conversion:", error);
+          await reply.edit(
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+          );
+        } finally {
+          if (existsSync(moduleFilePath)) {
+            rmSync(moduleFilePath);
+          }
+          if (existsSync(wavFilePath)) {
+            rmSync(wavFilePath);
+          }
+          if (existsSync(mp3FilePath)) {
+            rmSync(mp3FilePath);
+          }
+        }
       }
     }
+
   }
 });
 
