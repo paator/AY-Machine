@@ -112,7 +112,7 @@ client.on("messageCreate", async (message) => {
         );
 
         const moduleFilePath = `./${attachment.name}`;
-        const mp3FilePath = `${moduleFilePath}`;
+        const mp3FilePath = `${moduleFilePath}.mp3`;
 
         try {
           const file = await fetch(attachment.url);
