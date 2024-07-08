@@ -120,6 +120,9 @@ client.on("ready", () => {
 
 client.on("messageCreate", async (message) => {
   if (!message.author.bot) {
+    const def_aymClockRate = 1750000
+    const def_aymLayout = 0
+    const def_aymType = 0
 
     // User attachment
     if (message.attachments.size && message.attachments.first()) {
@@ -141,7 +144,40 @@ client.on("messageCreate", async (message) => {
 
           writeFileSync(moduleFilePath, buffer);
 
-          execSync(`./zxtune123 --mp3 filename="${mp3FilePath}",bitrate=320 ${moduleFilePath}`);
+          // Read user flags
+          if (message.content) {
+            const userFlags = message.content.replace(" ", "").split(",")
+
+            // Set default values
+            var aymClockRate = def_aymClockRate
+            var aymLayout = def_aymLayout
+            var aymType = def_aymType
+
+            for (let i = 0; i < userFlags.length; i++) {
+              if (userFlags[i].split("=")[0] == "AYMClockRate") {
+                const aymClockRateValue = Math.min(Math.max(parseInt(userFlags[i].split("=")[1]), 1000000), 9999999);
+                var aymClockRate = isNaN(aymClockRateValue) ? def_aymClockRate : aymClockRateValue
+              }
+
+              if (userFlags[i].split("=")[0] == "AYMLayout") {
+                const aymLayoutValue = Math.min(Math.max(parseInt(userFlags[i].split("=")[1]), 0), 5);
+                var aymLayout = isNaN(aymLayoutValue) ? def_aymLayout : aymLayoutValue
+              }
+
+              if (userFlags[i].split("=")[0] == "AYMType") {
+                const aymTypeValue = (parseInt(userFlags[i].split("=")[1]) > 0) ? 1 : 0;
+                var aymType = isNaN(aymTypeValue) ? def_aymType : aymTypeValue
+              }
+            }
+          } else {
+            var aymClockRate = def_aymClockRate
+            var aymLayout = def_aymLayout
+            var aymType = def_aymType
+          }
+
+          execSync(`
+            ./zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${mp3FilePath}",bitrate=320 "${moduleFilePath}"
+          `);
 
           const mp3Buffer = readFileSync(mp3FilePath);
 
