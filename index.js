@@ -79,12 +79,31 @@ const supportedZXTuneFormats = [
   "GBS",
   "GSF",
   "HES",
-  "KSS"
+  "KSS",
 ];
 
-const supportedFurnaceFormats =[
-  "FUR"
+const supportedFurnaceFormats = ["FUR"];
+
+const commonAYMChipFrequencies = [
+  ["zx", "1773400"],
+  ["pentagon", "1750000"],
+  ["bk", "1710000"],
+  ["vectrex", "1500000"],
+  ["cpc", "1000000"],
+  ["st", "2000000"],
+  ["taganrog", "3000000"],
 ];
+
+/*const commonAYMInterruptFrequencies = [
+  ["non_fract", "48"],
+  ["pentagon", "48.828"],
+  ["zx", "50"],
+  ["st_ntsc", "60"],
+  ["double_int", "100"],
+  ["st", "200"]
+];*/
+
+const commonAYMLayouts = ["abc", "acb", "bac", "bca", "cba", "cab"];
 
 function isSupportedZXTuneFormat(extension) {
   return supportedZXTuneFormats.includes(extension.toUpperCase());
@@ -92,16 +111,6 @@ function isSupportedZXTuneFormat(extension) {
 
 function isSupportedFurnaceFormat(extension) {
   return supportedFurnaceFormats.includes(extension.toUpperCase());
-}
-
-function isUrlWithSpecificDomain(url, specificDomain) {
-  const domainRegex = /^https?:\/\/([^\/]+)\/?/;
-  const match = url.match(domainRegex);
-  if (match) {
-    const domain = match[1].toLowerCase();
-    return domain === specificDomain.toLowerCase();
-  }
-  return false;
 }
 
 if (!existsSync("./zxtune123")) {
@@ -130,106 +139,14 @@ client.on("ready", () => {
 
 client.on("messageCreate", async (message) => {
   if (!message.author.bot) {
+    // Initialize variables
+    const def_aymClockRate = 1750000;
+    const def_aymLayout = 0;
+    const def_aymType = 0;
 
-    // ZXArt URL
-    if (isUrlWithSpecificDomain(message.content, "zxart.ee")) {
-      const file = await fetch(message.content)
-      const disposition = file.headers.get('Content-Disposition');
-      const fileName = disposition.split(';')[1].split('=')[1].slice(1, -1).replace(`'`,"");
-      const extension = fileName.split(".").pop();
-
-      if (isSupportedZXTuneFormat(extension)) {
-        const reply = await message.reply(
-          "🤖 Downloading your music and converting to format audible by humans. Please standby...",
-          { failIfNotExists: false }
-        );
-
-        const mp3FilePath = `${fileName}.mp3`;
-
-        try {
-          const buffer = Buffer.from(await file.arrayBuffer());
-
-          writeFileSync(fileName, buffer);
-
-          execSync(`./zxtune123 --mp3 filename="${mp3FilePath}",bitrate=320 "${fileName}"`);
-
-          const mp3Buffer = readFileSync(mp3FilePath);
-
-          const metadata = await parseBuffer(mp3Buffer, {
-            mimeType: "audio/mpeg",
-            size: mp3Buffer.length,
-          });
-          const artist = metadata.common.artist || "Unknown Artist";
-          const title = metadata.common.title || "Unknown Title";
-
-          await reply.edit({
-            content: `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`,
-            files: [
-              new AttachmentBuilder()
-                .setName(`${fileName}.mp3`)
-                .setFile(mp3Buffer),
-            ],
-          });
-        } catch (error) {
-          console.error("Error during conversion:", error);
-          await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`
-          );
-        } finally {
-          if (existsSync(fileName)) {
-            rmSync(fileName);
-          }
-          if (existsSync(mp3FilePath)) {
-            rmSync(mp3FilePath);
-          }
-        }
-      } else if (isSupportedFurnaceFormat(extension)) {
-        const reply = await message.reply(
-          "🤖 Downloading your music and converting to format audible by humans. Please standby...",
-          { failIfNotExists: false }
-        );
-
-        const wavFilePath = `${fileName}.wav`;
-        const mp3FilePath = `${wavFilePath}.mp3`;
-
-        try {
-          const buffer = Buffer.from(await file.arrayBuffer());
-
-          writeFileSync(fileName, buffer);
-
-          execSync(`./furnace -console "${process.env.PWD}/${fileName}" -output "${process.env.PWD}/${wavFilePath}"`);
-          // Convert wave to mp3
-          execSync(`./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`);
-
-          const mp3Buffer = readFileSync(mp3FilePath);
-
-          await reply.edit({
-            content: `🎶 Your track is ready for listening! 🎧🔥`,
-            files: [
-              new AttachmentBuilder()
-                .setName(`${fileName}.mp3`)
-                .setFile(mp3Buffer),
-            ],
-          });
-        } catch (error) {
-          console.error("Error during conversion:", error);
-          await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`
-          );
-        } finally {
-          if (existsSync(fileName)) {
-            rmSync(fileName);
-          }
-          if (existsSync(wavFilePath)) {
-            rmSync(wavFilePath);
-          }
-          if (existsSync(mp3FilePath)) {
-            rmSync(mp3FilePath);
-          }
-        }
-      }
-
-    }
+    var aymClockRate = def_aymClockRate;
+    var aymLayout = def_aymLayout;
+    var aymType = def_aymType;
 
     // User attachment
     if (message.attachments.size && message.attachments.first()) {
@@ -239,7 +156,7 @@ client.on("messageCreate", async (message) => {
       if (isSupportedZXTuneFormat(extension)) {
         const reply = await message.reply(
           "🤖 Initiating file conversion to format audible by humans. Please standby...",
-          { failIfNotExists: false }
+          { failIfNotExists: false },
         );
 
         const moduleFilePath = `${attachment.name}`;
@@ -251,7 +168,53 @@ client.on("messageCreate", async (message) => {
 
           writeFileSync(moduleFilePath, buffer);
 
-          execSync(`./zxtune123 --mp3 filename="${mp3FilePath}",bitrate=320 ${moduleFilePath}`);
+          // Read user flags
+          if (message.content) {
+            const userFlags = message.content.replaceAll(" ", "").split(",");
+
+            // Set default values
+            aymClockRate = def_aymClockRate;
+            aymLayout = def_aymLayout;
+            aymType = def_aymType;
+
+            for (let i = 0; i < userFlags.length; i++) {
+              if (userFlags[i].split("=")[0].toLowerCase() == "clock") {
+                for (let j = 0; j < commonAYMChipFrequencies.length; j++) {
+                  userFlags[i]
+                    .split("=")[1]
+                    .toLowerCase()
+                    .includes(commonAYMChipFrequencies[j][0])
+                    ? (aymClockRate = commonAYMChipFrequencies[j][1])
+                    : false;
+                }
+              }
+
+              if (userFlags[i].split("=")[0].toLowerCase() == "layout") {
+                for (let j = 0; j < commonAYMLayouts.length; j++) {
+                  userFlags[i]
+                    .split("=")[1]
+                    .toLowerCase()
+                    .includes(commonAYMLayouts[j])
+                    ? (aymLayout = j)
+                    : false;
+                }
+              }
+
+              if (userFlags[i].split("=")[0].toLowerCase() == "type") {
+                userFlags[i].split("=")[1].toLowerCase() == "ym"
+                  ? (aymType = 1)
+                  : false;
+              }
+            }
+          } else {
+            aymClockRate = def_aymClockRate;
+            aymLayout = def_aymLayout;
+            aymType = def_aymType;
+          }
+
+          execSync(`
+            ./zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${mp3FilePath}",bitrate=320 "${moduleFilePath}"
+          `);
 
           const mp3Buffer = readFileSync(mp3FilePath);
 
@@ -273,7 +236,7 @@ client.on("messageCreate", async (message) => {
         } catch (error) {
           console.error("Error during conversion:", error);
           await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`,
           );
         } finally {
           if (existsSync(moduleFilePath)) {
@@ -286,7 +249,7 @@ client.on("messageCreate", async (message) => {
       } else if (isSupportedFurnaceFormat(extension)) {
         const reply = await message.reply(
           "🤖 Initiating file conversion to format audible by humans. Please standby...",
-          { failIfNotExists: false }
+          { failIfNotExists: false },
         );
 
         const moduleFilePath = `${attachment.name}`;
@@ -299,9 +262,13 @@ client.on("messageCreate", async (message) => {
 
           writeFileSync(moduleFilePath, buffer);
 
-          execSync(`./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`);
+          execSync(
+            `./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`,
+          );
           // Convert wave to mp3
-          execSync(`./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`);
+          execSync(
+            `./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`,
+          );
 
           const mp3Buffer = readFileSync(mp3FilePath);
 
@@ -316,7 +283,7 @@ client.on("messageCreate", async (message) => {
         } catch (error) {
           console.error("Error during conversion:", error);
           await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`,
           );
         } finally {
           if (existsSync(moduleFilePath)) {
@@ -331,7 +298,6 @@ client.on("messageCreate", async (message) => {
         }
       }
     }
-
   }
 });
 
