@@ -79,12 +79,10 @@ const supportedZXTuneFormats = [
   "GBS",
   "GSF",
   "HES",
-  "KSS"
+  "KSS",
 ];
 
-const supportedFurnaceFormats = [
-  "FUR"
-];
+const supportedFurnaceFormats = ["FUR"];
 
 const commonAYMChipFrequencies = [
   ["zx", "1773400"],
@@ -93,7 +91,7 @@ const commonAYMChipFrequencies = [
   ["vectrex", "1500000"],
   ["cpc", "1000000"],
   ["st", "2000000"],
-  ["taganrog", "3000000"]
+  ["taganrog", "3000000"],
 ];
 
 /*const commonAYMInterruptFrequencies = [
@@ -105,37 +103,30 @@ const commonAYMChipFrequencies = [
   ["st", "200"]
 ];*/
 
-const commonAYMLayouts = [
-  "abc",
-  "acb",
-  "bac",
-  "bca",
-  "cba",
-  "cab"
-];
+const commonAYMLayouts = ["abc", "acb", "bac", "bca", "cba", "cab"];
 
 function isSupportedZXTuneFormat(extension) {
   return supportedZXTuneFormats.includes(extension.toUpperCase());
-};
+}
 
 function isSupportedFurnaceFormat(extension) {
   return supportedFurnaceFormats.includes(extension.toUpperCase());
-};
+}
 
 if (!existsSync("./zxtune123")) {
   console.log("zxtune CLI not found, quitting");
   process.exit(1);
-};
+}
 
 if (!existsSync("./furnace")) {
   console.log("furnace not found, quitting");
   process.exit(1);
-};
+}
 
 if (!existsSync("./ffmpeg")) {
   console.log("ffmpeg not found, quitting");
   process.exit(1);
-};
+}
 
 const client = new Client({
   intents: ["Guilds", "GuildMessages", "MessageContent"],
@@ -165,7 +156,7 @@ client.on("messageCreate", async (message) => {
       if (isSupportedZXTuneFormat(extension)) {
         const reply = await message.reply(
           "🤖 Initiating file conversion to format audible by humans. Please standby...",
-          { failIfNotExists: false }
+          { failIfNotExists: false },
         );
 
         const moduleFilePath = `${attachment.name}`;
@@ -179,7 +170,7 @@ client.on("messageCreate", async (message) => {
 
           // Read user flags
           if (message.content) {
-            const userFlags = message.content.replaceAll(" ", "").split(",")
+            const userFlags = message.content.replaceAll(" ", "").split(",");
 
             // Set default values
             aymClockRate = def_aymClockRate;
@@ -189,25 +180,37 @@ client.on("messageCreate", async (message) => {
             for (let i = 0; i < userFlags.length; i++) {
               if (userFlags[i].split("=")[0].toLowerCase() == "clock") {
                 for (let j = 0; j < commonAYMChipFrequencies.length; j++) {
-                  userFlags[i].split("=")[1].toLowerCase().includes(commonAYMChipFrequencies[j][0]) ? aymClockRate = commonAYMChipFrequencies[j][1] : false;
+                  userFlags[i]
+                    .split("=")[1]
+                    .toLowerCase()
+                    .includes(commonAYMChipFrequencies[j][0])
+                    ? (aymClockRate = commonAYMChipFrequencies[j][1])
+                    : false;
                 }
-              };
+              }
 
               if (userFlags[i].split("=")[0].toLowerCase() == "layout") {
                 for (let j = 0; j < commonAYMLayouts.length; j++) {
-                  userFlags[i].split("=")[1].toLowerCase().includes(commonAYMLayouts[j]) ? aymLayout = j : false;
+                  userFlags[i]
+                    .split("=")[1]
+                    .toLowerCase()
+                    .includes(commonAYMLayouts[j])
+                    ? (aymLayout = j)
+                    : false;
                 }
-              };
+              }
 
               if (userFlags[i].split("=")[0].toLowerCase() == "type") {
-                (userFlags[i].split("=")[1].toLowerCase() == "ym") ? aymType = 1 : false;
-              };
-            };
+                userFlags[i].split("=")[1].toLowerCase() == "ym"
+                  ? (aymType = 1)
+                  : false;
+              }
+            }
           } else {
             aymClockRate = def_aymClockRate;
             aymLayout = def_aymLayout;
             aymType = def_aymType;
-          };
+          }
 
           execSync(`
             ./zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${mp3FilePath}",bitrate=320 "${moduleFilePath}"
@@ -233,20 +236,20 @@ client.on("messageCreate", async (message) => {
         } catch (error) {
           console.error("Error during conversion:", error);
           await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`,
           );
         } finally {
           if (existsSync(moduleFilePath)) {
             rmSync(moduleFilePath);
-          };
+          }
           if (existsSync(mp3FilePath)) {
             rmSync(mp3FilePath);
-          };
-        };
+          }
+        }
       } else if (isSupportedFurnaceFormat(extension)) {
         const reply = await message.reply(
           "🤖 Initiating file conversion to format audible by humans. Please standby...",
-          { failIfNotExists: false }
+          { failIfNotExists: false },
         );
 
         const moduleFilePath = `${attachment.name}`;
@@ -259,9 +262,13 @@ client.on("messageCreate", async (message) => {
 
           writeFileSync(moduleFilePath, buffer);
 
-          execSync(`./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`);
+          execSync(
+            `./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`,
+          );
           // Convert wave to mp3
-          execSync(`./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`);
+          execSync(
+            `./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`,
+          );
 
           const mp3Buffer = readFileSync(mp3FilePath);
 
@@ -276,23 +283,22 @@ client.on("messageCreate", async (message) => {
         } catch (error) {
           console.error("Error during conversion:", error);
           await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`,
           );
         } finally {
           if (existsSync(moduleFilePath)) {
             rmSync(moduleFilePath);
-          };
+          }
           if (existsSync(wavFilePath)) {
             rmSync(wavFilePath);
-          };
+          }
           if (existsSync(mp3FilePath)) {
             rmSync(mp3FilePath);
-          };
-        };
-      };
-    };
-
-  };
+          }
+        }
+      }
+    }
+  }
 });
 
 client.login(process.env.BOT_TOKEN);
