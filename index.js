@@ -5,7 +5,7 @@ import { existsSync, writeFileSync, rmSync, readFileSync } from "fs";
 import fetch from "node-fetch";
 import { parseBuffer } from "music-metadata";
 
-const supportedZXTuneFormats = [
+const supportedZXTuneFormats = new Set([
   "ASC",
   "FTC",
   "GTR",
@@ -41,7 +41,6 @@ const supportedZXTuneFormats = [
   "IMF",
   "IT",
   "LIQ",
-  "PSM",
   "MDL",
   "MTM",
   "PTM",
@@ -80,9 +79,9 @@ const supportedZXTuneFormats = [
   "GSF",
   "HES",
   "KSS",
-];
+]);
 
-const supportedFurnaceFormats = ["FUR"];
+const supportedFurnaceFormats = new Set(["FUR"]);
 
 const commonAYMChipFrequencies = [
   ["zx", "1773400"],
@@ -94,211 +93,159 @@ const commonAYMChipFrequencies = [
   ["taganrog", "3000000"],
 ];
 
-/*const commonAYMInterruptFrequencies = [
-  ["non_fract", "48"],
-  ["pentagon", "48.828"],
-  ["zx", "50"],
-  ["st_ntsc", "60"],
-  ["double_int", "100"],
-  ["st", "200"]
-];*/
-
-const commonAYMLayouts = ["abc", "acb", "bac", "bca", "cba", "cab"];
-
-function isSupportedZXTuneFormat(extension) {
-  return supportedZXTuneFormats.includes(extension.toUpperCase());
-}
-
-function isSupportedFurnaceFormat(extension) {
-  return supportedFurnaceFormats.includes(extension.toUpperCase());
-}
-
-if (!existsSync("./zxtune123")) {
-  console.log("zxtune CLI not found, quitting");
-  process.exit(1);
-}
-
-if (!existsSync("./furnace")) {
-  console.log("furnace not found, quitting");
-  process.exit(1);
-}
-
-if (!existsSync("./ffmpeg")) {
-  console.log("ffmpeg not found, quitting");
-  process.exit(1);
-}
+const commonAYMLayouts = ["abc", "acb", "bac", "bca", "cba", "cab", "mono"];
 
 const client = new Client({
   intents: ["Guilds", "GuildMessages", "MessageContent"],
   failIfNotExists: false,
 });
 
+const checkDependencies = () => {
+  const dependencies = ["./zxtune123", "./furnace", "./ffmpeg"];
+  for (const dep of dependencies) {
+    if (!existsSync(dep)) {
+      console.log(`${dep} not found, quitting`);
+      process.exit(1);
+    }
+  }
+};
+
+const parseUserFlags = (messageContent) => {
+  const def_aymClockRate = 1750000;
+  const def_aymLayout = 0;
+  const def_aymType = 0;
+
+  let aymClockRate = def_aymClockRate;
+  let aymLayout = def_aymLayout;
+  let aymType = def_aymType;
+
+  if (messageContent) {
+    const userFlags = messageContent.replaceAll(" ", "").split(",");
+
+    for (const flag of userFlags) {
+      const [key, value] = flag.split("=").map((s) => s.toLowerCase());
+      if (key === "clock") {
+        const match = commonAYMChipFrequencies.find(([name]) =>
+          value.includes(name)
+        );
+        if (match) aymClockRate = match[1];
+      }
+      if (key === "layout") {
+        const layoutIndex = commonAYMLayouts.indexOf(value);
+        if (layoutIndex !== -1) aymLayout = layoutIndex;
+      }
+      if (key === "type" && value === "ym") {
+        aymType = 1;
+      }
+    }
+  }
+
+  return { aymClockRate, aymLayout, aymType };
+};
+
+const downloadAttachment = async (url, path) => {
+  const response = await fetch(url);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  writeFileSync(path, buffer);
+  return buffer;
+};
+
+const convertWithZXTune = (
+  inputPath,
+  outputPath,
+  { aymClockRate, aymLayout, aymType }
+) => {
+  execSync(
+    `./zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`
+  );
+};
+
+const convertWithFurnace = (inputPath, outputWavPath, outputMp3Path) => {
+  execSync(
+    `./furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`
+  );
+  execSync(
+    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
+  );
+};
+
+const handleConversion = async (message, extension, buffer, attachment) => {
+  const inputPath = attachment.name;
+  const mp3Path = `${inputPath}.mp3`;
+  const reply = await message.reply(
+    "🤖 Initiating file conversion to format audible by humans. Please standby...",
+    { failIfNotExists: false }
+  );
+
+  writeFileSync(inputPath, buffer);
+
+  const userFlags = parseUserFlags(message.content);
+
+  try {
+    if (supportedZXTuneFormats.has(extension)) {
+      convertWithZXTune(inputPath, mp3Path, userFlags);
+    } else if (supportedFurnaceFormats.has(extension)) {
+      const wavPath = `${inputPath}.wav`;
+      convertWithFurnace(inputPath, wavPath, mp3Path);
+      rmSync(wavPath);
+    }
+
+    const mp3Buffer = readFileSync(mp3Path);
+    const metadata = await parseBuffer(mp3Buffer, {
+      mimeType: "audio/mpeg",
+      size: mp3Buffer.length,
+    });
+    const artist = metadata.common.artist;
+    const title = metadata.common.title;
+
+    let messageContent;
+    if (artist && title) {
+      messageContent = `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`;
+    } else if (artist) {
+      messageContent = `🎶 Your track by ${artist} is ready for listening! 🎧🔥`;
+    } else if (title) {
+      messageContent = `🎶 Your track "${title}" is ready for listening! 🎧🔥`;
+    } else {
+      messageContent = `🎶 Your track is ready for listening! 🎧🔥`;
+    }
+
+    await reply.edit({
+      content: messageContent,
+      files: [
+        new AttachmentBuilder()
+          .setName(`${attachment.name}.mp3`)
+          .setFile(mp3Buffer),
+      ],
+    });
+  } catch (error) {
+    console.error("Error during conversion:", error);
+    await reply.edit(
+      `🤖 An error occurred during the conversion process. Please try again. ${error}`
+    );
+  } finally {
+    rmSync(inputPath);
+    rmSync(mp3Path);
+  }
+};
+
 client.on("ready", () => {
   console.log("Bot operational and ready to process commands.");
 });
 
 client.on("messageCreate", async (message) => {
-  if (!message.author.bot) {
-    // Initialize variables
-    const def_aymClockRate = 1750000;
-    const def_aymLayout = 0;
-    const def_aymType = 0;
+  if (!message.author.bot && message.attachments.size > 0) {
+    const attachment = message.attachments.first();
+    const extension = attachment.name.split(".").pop().toUpperCase();
 
-    var aymClockRate = def_aymClockRate;
-    var aymLayout = def_aymLayout;
-    var aymType = def_aymType;
-
-    // User attachment
-    if (message.attachments.size && message.attachments.first()) {
-      const attachment = message.attachments.first();
-      const extension = attachment.name.split(".").pop();
-
-      if (isSupportedZXTuneFormat(extension)) {
-        const reply = await message.reply(
-          "🤖 Initiating file conversion to format audible by humans. Please standby...",
-          { failIfNotExists: false },
-        );
-
-        const moduleFilePath = `${attachment.name}`;
-        const mp3FilePath = `${moduleFilePath}.mp3`;
-
-        try {
-          const file = await fetch(attachment.url);
-          const buffer = Buffer.from(await file.arrayBuffer());
-
-          writeFileSync(moduleFilePath, buffer);
-
-          // Read user flags
-          if (message.content) {
-            const userFlags = message.content.replaceAll(" ", "").split(",");
-
-            // Set default values
-            aymClockRate = def_aymClockRate;
-            aymLayout = def_aymLayout;
-            aymType = def_aymType;
-
-            for (let i = 0; i < userFlags.length; i++) {
-              if (userFlags[i].split("=")[0].toLowerCase() == "clock") {
-                for (let j = 0; j < commonAYMChipFrequencies.length; j++) {
-                  userFlags[i]
-                    .split("=")[1]
-                    .toLowerCase()
-                    .includes(commonAYMChipFrequencies[j][0])
-                    ? (aymClockRate = commonAYMChipFrequencies[j][1])
-                    : false;
-                }
-              }
-
-              if (userFlags[i].split("=")[0].toLowerCase() == "layout") {
-                for (let j = 0; j < commonAYMLayouts.length; j++) {
-                  userFlags[i]
-                    .split("=")[1]
-                    .toLowerCase()
-                    .includes(commonAYMLayouts[j])
-                    ? (aymLayout = j)
-                    : false;
-                }
-              }
-
-              if (userFlags[i].split("=")[0].toLowerCase() == "type") {
-                userFlags[i].split("=")[1].toLowerCase() == "ym"
-                  ? (aymType = 1)
-                  : false;
-              }
-            }
-          } else {
-            aymClockRate = def_aymClockRate;
-            aymLayout = def_aymLayout;
-            aymType = def_aymType;
-          }
-
-          execSync(`
-            ./zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${mp3FilePath}",bitrate=320 "${moduleFilePath}"
-          `);
-
-          const mp3Buffer = readFileSync(mp3FilePath);
-
-          const metadata = await parseBuffer(mp3Buffer, {
-            mimeType: "audio/mpeg",
-            size: mp3Buffer.length,
-          });
-          const artist = metadata.common.artist || "Unknown Artist";
-          const title = metadata.common.title || "Unknown Title";
-
-          await reply.edit({
-            content: `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`,
-            files: [
-              new AttachmentBuilder()
-                .setName(`${attachment.name}.mp3`)
-                .setFile(mp3Buffer),
-            ],
-          });
-        } catch (error) {
-          console.error("Error during conversion:", error);
-          await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`,
-          );
-        } finally {
-          if (existsSync(moduleFilePath)) {
-            rmSync(moduleFilePath);
-          }
-          if (existsSync(mp3FilePath)) {
-            rmSync(mp3FilePath);
-          }
-        }
-      } else if (isSupportedFurnaceFormat(extension)) {
-        const reply = await message.reply(
-          "🤖 Initiating file conversion to format audible by humans. Please standby...",
-          { failIfNotExists: false },
-        );
-
-        const moduleFilePath = `${attachment.name}`;
-        const wavFilePath = `${moduleFilePath}.wav`;
-        const mp3FilePath = `${wavFilePath}.mp3`;
-
-        try {
-          const file = await fetch(attachment.url);
-          const buffer = Buffer.from(await file.arrayBuffer());
-
-          writeFileSync(moduleFilePath, buffer);
-
-          execSync(
-            `./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`,
-          );
-          // Convert wave to mp3
-          execSync(
-            `./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`,
-          );
-
-          const mp3Buffer = readFileSync(mp3FilePath);
-
-          await reply.edit({
-            content: `🎶 Your track is ready for listening! 🎧🔥`,
-            files: [
-              new AttachmentBuilder()
-                .setName(`${attachment.name}.mp3`)
-                .setFile(mp3Buffer),
-            ],
-          });
-        } catch (error) {
-          console.error("Error during conversion:", error);
-          await reply.edit(
-            `🤖 An error occurred during the conversion process. Please try again. ${error}`,
-          );
-        } finally {
-          if (existsSync(moduleFilePath)) {
-            rmSync(moduleFilePath);
-          }
-          if (existsSync(wavFilePath)) {
-            rmSync(wavFilePath);
-          }
-          if (existsSync(mp3FilePath)) {
-            rmSync(mp3FilePath);
-          }
-        }
-      }
+    if (
+      supportedZXTuneFormats.has(extension) ||
+      supportedFurnaceFormats.has(extension)
+    ) {
+      const buffer = await downloadAttachment(attachment.url, attachment.name);
+      await handleConversion(message, extension, buffer, attachment);
     }
   }
 });
 
+checkDependencies();
 client.login(process.env.BOT_TOKEN);
