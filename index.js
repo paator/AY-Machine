@@ -83,6 +83,8 @@ const supportedZXTuneFormats = new Set([
 
 const supportedFurnaceFormats = new Set(["FUR"]);
 
+const supportedChipnsfxFormats = new Set(["CHP"]);
+
 const commonAYMChipFrequencies = [
   ["zx", "1773400"],
   ["pentagon", "1750000"],
@@ -169,6 +171,15 @@ const convertWithFurnace = (inputPath, outputWavPath, outputMp3Path) => {
   );
 };
 
+const convertWithChipnsfx = (inputPath, outputWavPath, outputMp3Path) => {
+  execSync(
+    `./chipnsfx -w "${inputPath}" "${outputWavPath}"`
+  );
+  execSync(
+    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
+  );
+};
+
 const handleConversion = async (message, extension, buffer, attachment) => {
   const inputPath = attachment.name;
   const mp3Path = `${inputPath}.mp3`;
@@ -187,6 +198,10 @@ const handleConversion = async (message, extension, buffer, attachment) => {
     } else if (supportedFurnaceFormats.has(extension)) {
       const wavPath = `${inputPath}.wav`;
       convertWithFurnace(inputPath, wavPath, mp3Path);
+      rmSync(wavPath);
+    } else if (supportedChipnsfxFormats.has(extension)) {
+      const wavPath = `${inputPath}.wav`;
+      convertWithChipnsfx(inputPath, wavPath, mp3Path);
       rmSync(wavPath);
     }
 
@@ -239,7 +254,8 @@ client.on("messageCreate", async (message) => {
 
     if (
       supportedZXTuneFormats.has(extension) ||
-      supportedFurnaceFormats.has(extension)
+      supportedFurnaceFormats.has(extension) ||
+      supportedChipnsfxFormats.has(extension)
     ) {
       const buffer = await downloadAttachment(attachment.url, attachment.name);
       await handleConversion(message, extension, buffer, attachment);
