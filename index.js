@@ -94,13 +94,23 @@ function isSupportedFurnaceFormat(extension) {
   return supportedFurnaceFormats.includes(extension.toUpperCase());
 }
 
+function isUrlWithSpecificDomain(url, specificDomain) {
+  const domainRegex = /^https?:\/\/([^\/]+)\/?/;
+  const match = url.match(domainRegex);
+  if (match) {
+    const domain = match[1].toLowerCase();
+    return domain === specificDomain.toLowerCase();
+  }
+  return false;
+}
+
 if (!existsSync("./zxtune123")) {
   console.log("zxtune CLI not found, quitting");
   process.exit(1);
 }
 
 if (!existsSync("./furnace")) {
-  console.log("furnace CLI not found, quitting");
+  console.log("furnace not found, quitting");
   process.exit(1);
 }
 
@@ -121,6 +131,106 @@ client.on("ready", () => {
 client.on("messageCreate", async (message) => {
   if (!message.author.bot) {
 
+    // ZXArt URL
+    if (isUrlWithSpecificDomain(message.content, "zxart.ee")) {
+      const file = await fetch(message.content)
+      const disposition = file.headers.get('Content-Disposition');
+      const fileName = disposition.split(';')[1].split('=')[1].slice(1, -1).replace(`'`,"");
+      const extension = fileName.split(".").pop();
+
+      if (isSupportedZXTuneFormat(extension)) {
+        const reply = await message.reply(
+          "🤖 Downloading your music and converting to format audible by humans. Please standby...",
+          { failIfNotExists: false }
+        );
+
+        const mp3FilePath = `${fileName}.mp3`;
+
+        try {
+          const buffer = Buffer.from(await file.arrayBuffer());
+
+          writeFileSync(fileName, buffer);
+
+          execSync(`./zxtune123 --mp3 filename="${mp3FilePath}",bitrate=320 "${fileName}"`);
+
+          const mp3Buffer = readFileSync(mp3FilePath);
+
+          const metadata = await parseBuffer(mp3Buffer, {
+            mimeType: "audio/mpeg",
+            size: mp3Buffer.length,
+          });
+          const artist = metadata.common.artist || "Unknown Artist";
+          const title = metadata.common.title || "Unknown Title";
+
+          await reply.edit({
+            content: `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`,
+            files: [
+              new AttachmentBuilder()
+                .setName(`${fileName}.mp3`)
+                .setFile(mp3Buffer),
+            ],
+          });
+        } catch (error) {
+          console.error("Error during conversion:", error);
+          await reply.edit(
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+          );
+        } finally {
+          if (existsSync(fileName)) {
+            rmSync(fileName);
+          }
+          if (existsSync(mp3FilePath)) {
+            rmSync(mp3FilePath);
+          }
+        }
+      } else if (isSupportedFurnaceFormat(extension)) {
+        const reply = await message.reply(
+          "🤖 Downloading your music and converting to format audible by humans. Please standby...",
+          { failIfNotExists: false }
+        );
+
+        const wavFilePath = `${fileName}.wav`;
+        const mp3FilePath = `${wavFilePath}.mp3`;
+
+        try {
+          const buffer = Buffer.from(await file.arrayBuffer());
+
+          writeFileSync(fileName, buffer);
+
+          execSync(`./furnace -console "${process.env.PWD}/${fileName}" -output "${process.env.PWD}/${wavFilePath}"`);
+          // Convert wave to mp3
+          execSync(`./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`);
+
+          const mp3Buffer = readFileSync(mp3FilePath);
+
+          await reply.edit({
+            content: `🎶 Your track is ready for listening! 🎧🔥`,
+            files: [
+              new AttachmentBuilder()
+                .setName(`${fileName}.mp3`)
+                .setFile(mp3Buffer),
+            ],
+          });
+        } catch (error) {
+          console.error("Error during conversion:", error);
+          await reply.edit(
+            `🤖 An error occurred during the conversion process. Please try again. ${error}`
+          );
+        } finally {
+          if (existsSync(fileName)) {
+            rmSync(fileName);
+          }
+          if (existsSync(wavFilePath)) {
+            rmSync(wavFilePath);
+          }
+          if (existsSync(mp3FilePath)) {
+            rmSync(mp3FilePath);
+          }
+        }
+      }
+
+    }
+
     // User attachment
     if (message.attachments.size && message.attachments.first()) {
       const attachment = message.attachments.first();
@@ -132,7 +242,7 @@ client.on("messageCreate", async (message) => {
           { failIfNotExists: false }
         );
 
-        const moduleFilePath = `./${attachment.name}`;
+        const moduleFilePath = `${attachment.name}`;
         const mp3FilePath = `${moduleFilePath}.mp3`;
 
         try {
