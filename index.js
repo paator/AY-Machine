@@ -100,7 +100,7 @@ if (!existsSync("./zxtune123")) {
 }
 
 if (!existsSync("./furnace")) {
-  console.log("furnace CLI not found, quitting");
+  console.log("furnace not found, quitting");
   process.exit(1);
 }
 
@@ -215,7 +215,7 @@ client.on("messageCreate", async (message) => {
           { failIfNotExists: false }
         );
 
-        const moduleFilePath = `./${attachment.name}`;
+        const moduleFilePath = `${attachment.name}`;
         const wavFilePath = `${moduleFilePath}.wav`;
         const mp3FilePath = `${wavFilePath}.mp3`;
 
@@ -227,7 +227,7 @@ client.on("messageCreate", async (message) => {
 
           execSync(`./furnace -console "${process.env.PWD}/${moduleFilePath}" -output "${process.env.PWD}/${wavFilePath}"`);
           // Convert wave to mp3
-          execSync(`./ffmpeg -i ${wavFilePath} -ab 320k ${mp3FilePath} -hide_banner -loglevel error`);
+          execSync(`./ffmpeg -i "${wavFilePath}" -ab 320k "${mp3FilePath}" -hide_banner -loglevel error`);
 
           const mp3Buffer = readFileSync(mp3FilePath);
 
