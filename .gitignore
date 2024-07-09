@@ -1,7 +1,8 @@
 node_modules
 zxtune123
-chipnsfx
 furnace
 ffmpeg
+chipnsfx
+SongToWav
 .env
 .directory
