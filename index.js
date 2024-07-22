@@ -85,7 +85,7 @@ const supportedFurnaceFormats = new Set(["FUR"]);
 
 const supportedChipnsfxFormats = new Set(["CHP"]);
 
-const supportedArkosFormats = new Set(["AKS", "128", "SKS", "VT2", "WYZ"]);
+const supportedArkosFormats = new Set(["AKS", "128", "SKS", "WYZ"]);
 
 const commonAYMChipFrequencies = [
   ["zx", "1773400"],
