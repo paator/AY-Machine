@@ -184,7 +184,7 @@ const convertWithChipnsfx = (inputPath, outputWavPath, outputMp3Path) => {
 
 const convertWithPSGplay = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `./psgplay --stop=15:0 "${inputPath}" -o "${outputWavPath}"`
+    `./psgplay --stop=3:25 "${inputPath}" -o "${outputWavPath}"`
   );
   execSync(
     `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
