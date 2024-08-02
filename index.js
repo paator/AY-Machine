@@ -80,12 +80,10 @@ const supportedZXTuneFormats = new Set([
   "HES",
   "KSS",
 ]);
-
 const supportedFurnaceFormats = new Set(["FUR"]);
-
 const supportedChipnsfxFormats = new Set(["CHP"]);
-
 const supportedPSGplayFormats = new Set(["SNDH"]);
+const supportedArkosFormats = new Set(["AKS", "128", "SKS", "WYZ"]);
 
 const commonAYMChipFrequencies = [
   ["zx", "1773400"],
@@ -105,7 +103,7 @@ const client = new Client({
 });
 
 const checkDependencies = () => {
-  const dependencies = ["./zxtune123", "./furnace", "./ffmpeg", "./psgplay"];
+  const dependencies = ["./zxtune123", "./furnace", "./ffmpeg", "./chipnsfx", "./SongToWav", "./psgplay"];
   for (const dep of dependencies) {
     if (!existsSync(dep)) {
       console.log(`${dep} not found, quitting`);
@@ -191,6 +189,15 @@ const convertWithPSGplay = (inputPath, outputWavPath, outputMp3Path) => {
   );
 };
 
+const convertWithArkos = (inputPath, outputWavPath, outputMp3Path) => {
+  execSync(
+    `./SongToWav "${inputPath}" "${outputWavPath}"`
+  );
+  execSync(
+    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
+  );
+};
+
 const handleConversion = async (message, extension, buffer, attachment) => {
   const inputPath = attachment.name;
   const mp3Path = `${inputPath}.mp3`;
@@ -205,18 +212,27 @@ const handleConversion = async (message, extension, buffer, attachment) => {
 
   try {
     if (supportedZXTuneFormats.has(extension)) {
+      // ZXTune
       convertWithZXTune(inputPath, mp3Path, userFlags);
     } else if (supportedFurnaceFormats.has(extension)) {
+      // Furnace
       const wavPath = `${inputPath}.wav`;
       convertWithFurnace(inputPath, wavPath, mp3Path);
       rmSync(wavPath);
     } else if (supportedChipnsfxFormats.has(extension)) {
+      // chipnsfx
       const wavPath = `${inputPath}.wav`;
       convertWithChipnsfx(inputPath, wavPath, mp3Path);
       rmSync(wavPath);
     } else if (supportedPSGplayFormats.has(extension)) {
+      // psgplay
       const wavPath = `${inputPath}.wav`;
       convertWithPSGplay(inputPath, wavPath, mp3Path);
+      rmSync(wavPath);
+    } else if (supportedArkosFormats.has(extension)) {
+      // Arkos Tracker 2
+      const wavPath = `${inputPath}.wav`;
+      convertWithArkos(inputPath, wavPath, mp3Path);
       rmSync(wavPath);
     }
 
@@ -271,7 +287,8 @@ client.on("messageCreate", async (message) => {
       supportedZXTuneFormats.has(extension) ||
       supportedFurnaceFormats.has(extension) ||
       supportedChipnsfxFormats.has(extension) ||
-      supportedPSGplayFormats.has(extension)
+      supportedPSGplayFormats.has(extension) ||
+      supportedArkosFormats.has(extension)
     ) {
       const buffer = await downloadAttachment(attachment.url, attachment.name);
       await handleConversion(message, extension, buffer, attachment);
