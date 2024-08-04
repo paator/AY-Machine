@@ -80,11 +80,9 @@ const supportedZXTuneFormats = new Set([
   "HES",
   "KSS",
 ]);
-
 const supportedFurnaceFormats = new Set(["FUR"]);
-
 const supportedChipnsfxFormats = new Set(["CHP"]);
-
+const supportedPSGplayFormats = new Set(["SNDH"]);
 const supportedArkosFormats = new Set(["AKS", "128", "SKS", "WYZ"]);
 
 const commonAYMChipFrequencies = [
@@ -105,7 +103,7 @@ const client = new Client({
 });
 
 const checkDependencies = () => {
-  const dependencies = ["./zxtune123", "./furnace", "./ffmpeg", "./chipnsfx", "./SongToWav"];
+  const dependencies = ["./zxtune123", "./furnace", "./ffmpeg", "./chipnsfx", "./SongToWav", "./psgplay"];
   for (const dep of dependencies) {
     if (!existsSync(dep)) {
       console.log(`${dep} not found, quitting`);
@@ -182,6 +180,15 @@ const convertWithChipnsfx = (inputPath, outputWavPath, outputMp3Path) => {
   );
 };
 
+const convertWithPSGplay = (inputPath, outputWavPath, outputMp3Path) => {
+  execSync(
+    `./psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`
+  );
+  execSync(
+    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
+  );
+};
+
 const convertWithArkos = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
     `./SongToWav "${inputPath}" "${outputWavPath}"`
@@ -216,6 +223,11 @@ const handleConversion = async (message, extension, buffer, attachment) => {
       // chipnsfx
       const wavPath = `${inputPath}.wav`;
       convertWithChipnsfx(inputPath, wavPath, mp3Path);
+      rmSync(wavPath);
+    } else if (supportedPSGplayFormats.has(extension)) {
+      // psgplay
+      const wavPath = `${inputPath}.wav`;
+      convertWithPSGplay(inputPath, wavPath, mp3Path);
       rmSync(wavPath);
     } else if (supportedArkosFormats.has(extension)) {
       // Arkos Tracker 2
@@ -275,6 +287,7 @@ client.on("messageCreate", async (message) => {
       supportedZXTuneFormats.has(extension) ||
       supportedFurnaceFormats.has(extension) ||
       supportedChipnsfxFormats.has(extension) ||
+      supportedPSGplayFormats.has(extension) ||
       supportedArkosFormats.has(extension)
     ) {
       const buffer = await downloadAttachment(attachment.url, attachment.name);
