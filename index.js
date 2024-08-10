@@ -91,6 +91,7 @@ const commonAYMChipFrequencies = [
   ["bk", "1710000"],
   ["vectrex", "1500000"],
   ["cpc", "1000000"],
+  ["oric", "1000000"],
   ["st", "2000000"],
   ["taganrog", "3000000"],
 ];
