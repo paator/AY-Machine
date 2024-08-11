@@ -82,7 +82,7 @@ const supportedZXTuneFormats = new Set([
 ]);
 const supportedFurnaceFormats = new Set(["FUR"]);
 const supportedChipnsfxFormats = new Set(["CHP"]);
-const supportedPSGplayFormats = new Set(["SNDH"]);
+const supportedPSGplayFormats = new Set(["SNDH", "SND"]);
 const supportedArkosFormats = new Set(["AKS", "128", "SKS", "WYZ"]);
 
 const commonAYMChipFrequencies = [
@@ -91,6 +91,7 @@ const commonAYMChipFrequencies = [
   ["bk", "1710000"],
   ["vectrex", "1500000"],
   ["cpc", "1000000"],
+  ["oric", "1000000"],
   ["st", "2000000"],
   ["taganrog", "3000000"],
 ];
