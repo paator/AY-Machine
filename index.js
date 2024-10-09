@@ -164,7 +164,7 @@ const downloadAttachment = async (url, path) => {
 
 const convertToMp3 = (outputWavPath, outputMp3Path) => {
   execSync(
-    `./tools/ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`,
+    `${toolsDir}ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`,
   );
 };
 
@@ -174,31 +174,31 @@ const convertWithZXTune = (
   { aymClockRate, aymLayout, aymType },
 ) => {
   execSync(
-    `./tools/zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`,
+    `${toolsDir}zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`,
   );
 };
 
 const convertWithFurnace = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `./tools/furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`,
+    `${toolsDir}furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`,
   );
   convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const convertWithChipnsfx = (inputPath, outputWavPath, outputMp3Path) => {
-  execSync(`./tools/chipnsfx -w "${inputPath}" "${outputWavPath}"`);
+  execSync(`${toolsDir}chipnsfx -w "${inputPath}" "${outputWavPath}"`);
   convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const convertWithPSGplay = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `./tools/psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`,
+    `${toolsDir}psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`,
   );
   convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const convertWithArkos = (inputPath, outputWavPath, outputMp3Path) => {
-  execSync(`./tools/SongToWav "${inputPath}" "${outputWavPath}"`);
+  execSync(`${toolsDir}SongToWav "${inputPath}" "${outputWavPath}"`);
   convertToMp3(outputWavPath, outputMp3Path);
 };
 
