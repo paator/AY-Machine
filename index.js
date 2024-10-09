@@ -280,7 +280,7 @@ client.on("ready", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  if (!message.author.bot && message.attachments.size > 0) {
+  if (!message.author.bot && message.attachments.size > 0 && !message.content.toLowerCase().includes("$aymignorefile")) {
     const attachment = message.attachments.first();
     const extension = attachment.name.split(".").pop().toUpperCase();
 
