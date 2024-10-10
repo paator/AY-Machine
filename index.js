@@ -103,10 +103,19 @@ const client = new Client({
   failIfNotExists: false,
 });
 
+const toolsDir = "./tools/";
+
 const checkDependencies = () => {
-  const dependencies = ["./zxtune123", "./furnace", "./ffmpeg", "./chipnsfx", "./SongToWav", "./psgplay"];
+  const dependencies = [
+    "zxtune123",
+    "furnace",
+    "ffmpeg",
+    "chipnsfx",
+    "SongToWav",
+    "psgplay",
+  ];
   for (const dep of dependencies) {
-    if (!existsSync(dep)) {
+    if (!existsSync(toolsDir + dep)) {
       console.log(`${dep} not found, quitting`);
       process.exit(1);
     }
@@ -129,7 +138,7 @@ const parseUserFlags = (messageContent) => {
       const [key, value] = flag.split("=").map((s) => s.toLowerCase());
       if (key === "clock") {
         const match = commonAYMChipFrequencies.find(([name]) =>
-          value.includes(name)
+          value.includes(name),
         );
         if (match) aymClockRate = match[1];
       }
@@ -153,50 +162,44 @@ const downloadAttachment = async (url, path) => {
   return buffer;
 };
 
+const convertToMp3 = (outputWavPath, outputMp3Path) => {
+  execSync(
+    `${toolsDir}ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`,
+  );
+};
+
 const convertWithZXTune = (
   inputPath,
   outputPath,
-  { aymClockRate, aymLayout, aymType }
+  { aymClockRate, aymLayout, aymType },
 ) => {
   execSync(
-    `./zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`
+    `${toolsDir}zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`,
   );
 };
 
 const convertWithFurnace = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `./furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`
+    `${toolsDir}furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`,
   );
-  execSync(
-    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
-  );
+  convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const convertWithChipnsfx = (inputPath, outputWavPath, outputMp3Path) => {
-  execSync(
-    `./chipnsfx -w "${inputPath}" "${outputWavPath}"`
-  );
-  execSync(
-    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
-  );
+  execSync(`${toolsDir}chipnsfx -w "${inputPath}" "${outputWavPath}"`);
+  convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const convertWithPSGplay = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `./psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`
+    `${toolsDir}psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`,
   );
-  execSync(
-    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
-  );
+  convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const convertWithArkos = (inputPath, outputWavPath, outputMp3Path) => {
-  execSync(
-    `./SongToWav "${inputPath}" "${outputWavPath}"`
-  );
-  execSync(
-    `./ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
-  );
+  execSync(`${toolsDir}SongToWav "${inputPath}" "${outputWavPath}"`);
+  convertToMp3(outputWavPath, outputMp3Path);
 };
 
 const handleConversion = async (message, extension, buffer, attachment) => {
@@ -204,7 +207,7 @@ const handleConversion = async (message, extension, buffer, attachment) => {
   const mp3Path = `${inputPath}.mp3`;
   const reply = await message.reply(
     "🤖 Initiating file conversion to format audible by humans. Please standby...",
-    { failIfNotExists: false }
+    { failIfNotExists: false },
   );
 
   writeFileSync(inputPath, buffer);
@@ -267,7 +270,7 @@ const handleConversion = async (message, extension, buffer, attachment) => {
   } catch (error) {
     console.error("Error during conversion:", error);
     await reply.edit(
-      `🤖 An error occurred during the conversion process. Please try again. ${error}`
+      `🤖 An error occurred during the conversion process. Please try again. ${error}`,
     );
   } finally {
     rmSync(inputPath);
@@ -280,7 +283,11 @@ client.on("ready", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  if (!message.author.bot && message.attachments.size > 0 && !message.content.toLowerCase().includes("$aymignorefile")) {
+  if (
+    !message.author.bot &&
+    message.attachments.size > 0 &&
+    !message.content.toLowerCase().includes("$aymignorefile")
+  ) {
     const attachment = message.attachments.first();
     const extension = attachment.name.split(".").pop().toUpperCase();
 
