@@ -2,3 +2,4 @@ node_modules
 tools
 .env
 .directory
+usage_log.json
