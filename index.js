@@ -280,18 +280,16 @@ const handleConversion = async (message, extension, buffer, attachment) => {
   }
 };
 
-const logUsage = async (user, guild, channel) => {
+const logUsage = async (user, guild, channel, attachmentName) => {
   const logFile = "usage_log.json";
   let logData = [];
 
   try {
-    // Read existing log file if it exists
     if (existsSync(logFile)) {
       const fileContent = await fs.readFile(logFile, "utf-8");
       logData = JSON.parse(fileContent);
     }
 
-    // Add new log entry
     logData.push({
       timestamp: new Date().toISOString(),
       user: {
@@ -309,9 +307,9 @@ const logUsage = async (user, guild, channel) => {
         id: channel.id,
         name: channel.name,
       },
+      attachment: attachmentName,
     });
 
-    // Write updated log data back to file
     await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
   } catch (error) {
     console.error("Error logging usage:", error);
@@ -338,8 +336,12 @@ client.on("messageCreate", async (message) => {
       supportedPSGplayFormats.has(extension) ||
       supportedArkosFormats.has(extension)
     ) {
-      // Log usage before processing the conversion
-      await logUsage(message.author, message.guild, message.channel);
+      await logUsage(
+        message.author,
+        message.guild,
+        message.channel,
+        attachment.name
+      );
 
       const buffer = await downloadAttachment(attachment.url, attachment.name);
       await handleConversion(message, extension, buffer, attachment);
