@@ -4,6 +4,8 @@ import { execSync } from "child_process";
 import { existsSync, writeFileSync, rmSync, readFileSync } from "fs";
 import fetch from "node-fetch";
 import { parseBuffer } from "music-metadata";
+import fs from "fs/promises";
+import path from "path";
 
 const supportedZXTuneFormats = new Set([
   "ASC",
@@ -138,7 +140,7 @@ const parseUserFlags = (messageContent) => {
       const [key, value] = flag.split("=").map((s) => s.toLowerCase());
       if (key === "clock") {
         const match = commonAYMChipFrequencies.find(([name]) =>
-          value.includes(name),
+          value.includes(name)
         );
         if (match) aymClockRate = match[1];
       }
@@ -164,23 +166,23 @@ const downloadAttachment = async (url, path) => {
 
 const convertToMp3 = (outputWavPath, outputMp3Path) => {
   execSync(
-    `${toolsDir}ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`,
+    `${toolsDir}ffmpeg -i "${outputWavPath}" -ab 320k "${outputMp3Path}" -hide_banner -loglevel error`
   );
 };
 
 const convertWithZXTune = (
   inputPath,
   outputPath,
-  { aymClockRate, aymLayout, aymType },
+  { aymClockRate, aymLayout, aymType }
 ) => {
   execSync(
-    `${toolsDir}zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`,
+    `${toolsDir}zxtune123 --core-options aym.clockrate="${aymClockRate}",aym.layout="${aymLayout}",aym.type="${aymType}" --mp3 filename="${outputPath}",bitrate=320 "${inputPath}"`
   );
 };
 
 const convertWithFurnace = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `${toolsDir}furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`,
+    `${toolsDir}furnace -console "${process.cwd()}/${inputPath}" -output "${process.cwd()}/${outputWavPath}"`
   );
   convertToMp3(outputWavPath, outputMp3Path);
 };
@@ -192,7 +194,7 @@ const convertWithChipnsfx = (inputPath, outputWavPath, outputMp3Path) => {
 
 const convertWithPSGplay = (inputPath, outputWavPath, outputMp3Path) => {
   execSync(
-    `${toolsDir}psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`,
+    `${toolsDir}psgplay --stop=auto --length=3:25 "${inputPath}" -o "${outputWavPath}"`
   );
   convertToMp3(outputWavPath, outputMp3Path);
 };
@@ -207,7 +209,7 @@ const handleConversion = async (message, extension, buffer, attachment) => {
   const mp3Path = `${inputPath}.mp3`;
   const reply = await message.reply(
     "🤖 Initiating file conversion to format audible by humans. Please standby...",
-    { failIfNotExists: false },
+    { failIfNotExists: false }
   );
 
   writeFileSync(inputPath, buffer);
@@ -270,11 +272,49 @@ const handleConversion = async (message, extension, buffer, attachment) => {
   } catch (error) {
     console.error("Error during conversion:", error);
     await reply.edit(
-      `🤖 An error occurred during the conversion process. Please try again. ${error}`,
+      `🤖 An error occurred during the conversion process. Please try again. ${error}`
     );
   } finally {
     rmSync(inputPath);
     rmSync(mp3Path);
+  }
+};
+
+const logUsage = async (user, guild, channel) => {
+  const logFile = "usage_log.json";
+  let logData = [];
+
+  try {
+    // Read existing log file if it exists
+    if (existsSync(logFile)) {
+      const fileContent = await fs.readFile(logFile, "utf-8");
+      logData = JSON.parse(fileContent);
+    }
+
+    // Add new log entry
+    logData.push({
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user.id,
+        username: user.username,
+        discriminator: user.discriminator,
+      },
+      guild: guild
+        ? {
+            id: guild.id,
+            name: guild.name,
+          }
+        : null,
+      channel: {
+        id: channel.id,
+        name: channel.name,
+      },
+    });
+
+    // Write updated log data back to file
+    await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
+  } catch (error) {
+    console.error("Error logging usage:", error);
   }
 };
 
@@ -298,11 +338,13 @@ client.on("messageCreate", async (message) => {
       supportedPSGplayFormats.has(extension) ||
       supportedArkosFormats.has(extension)
     ) {
+      // Log usage before processing the conversion
+      await logUsage(message.author, message.guild, message.channel);
+
       const buffer = await downloadAttachment(attachment.url, attachment.name);
       await handleConversion(message, extension, buffer, attachment);
     }
   }
 });
-
 checkDependencies();
 client.login(process.env.BOT_TOKEN);
