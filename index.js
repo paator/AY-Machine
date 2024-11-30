@@ -96,6 +96,7 @@ const commonAYMChipFrequencies = [
   ["oric", "1000000"],
   ["st", "2000000"],
   ["taganrog", "3000000"],
+  ["ql", "750000"],
 ];
 
 const commonAYMLayouts = ["abc", "acb", "bac", "bca", "cba", "cab", "mono"];
