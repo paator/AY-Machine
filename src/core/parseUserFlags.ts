@@ -11,7 +11,9 @@ export function parseUserFlags(messageContent: string | null | undefined): UserF
   let aymType = def_aymType;
 
   if (messageContent) {
-    const userFlags = messageContent.replaceAll(" ", "").split(",");
+    // Accept either comma-separated (a=b,c=d) or space-separated (a=b c=d)
+    const cleaned = messageContent.replaceAll(" ", ",");
+    const userFlags = cleaned.split(",").filter(Boolean);
     for (const flag of userFlags) {
       const [rawKey, rawValue] = flag.split("=");
       if (!rawKey || !rawValue) continue;
@@ -26,8 +28,9 @@ export function parseUserFlags(messageContent: string | null | undefined): UserF
         const layoutIndex = commonAYMLayouts.indexOf(value as (typeof commonAYMLayouts)[number]);
         if (layoutIndex !== -1) aymLayout = layoutIndex;
       }
-      if (key === "type" && value === "ym") {
-        aymType = 1;
+      if (key === "type") {
+        if (value === "ym") aymType = 1;
+        if (value === "ay") aymType = 0;
       }
     }
   }
