@@ -28,13 +28,12 @@ export function parseUserFlags(messageContent: string | null | undefined): UserF
           const normalized = value.replace(",", ".");
           const numeric = Number(normalized);
           if (Number.isFinite(numeric) && numeric > 0) {
-            if (normalized.includes(".")) {
-              //it's decimal, so we treat it as MHz
-              aymClockRate = Math.round(numeric * 1_000_000);
-            } else {
-              //it's most likely an integer, so we treat it as Hz
-              aymClockRate = Math.round(numeric);
-            }
+            let hz = normalized.includes(".")
+              ? Math.round(numeric * 1_000_000)
+              : Math.round(numeric);
+            if (hz < 500_000) hz = 500_000;
+            if (hz > 10_000_000) hz = 10_000_000;
+            aymClockRate = hz;
           }
         }
       }
