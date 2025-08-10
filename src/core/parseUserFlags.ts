@@ -22,7 +22,21 @@ export function parseUserFlags(messageContent: string | null | undefined): UserF
 
       if (key === "clock") {
         const match = commonAYMChipFrequencies.find(([name]) => value.includes(name));
-        if (match) aymClockRate = match[1];
+        if (match) {
+          aymClockRate = match[1];
+        } else {
+          const normalized = value.replace(",", ".");
+          const numeric = Number(normalized);
+          if (Number.isFinite(numeric) && numeric > 0) {
+            if (normalized.includes(".")) {
+              //it's decimal, so we treat it as MHz
+              aymClockRate = Math.round(numeric * 1_000_000);
+            } else {
+              //it's most likely an integer, so we treat it as Hz
+              aymClockRate = Math.round(numeric);
+            }
+          }
+        }
       }
       if (key === "layout") {
         const layoutIndex = commonAYMLayouts.indexOf(value as (typeof commonAYMLayouts)[number]);

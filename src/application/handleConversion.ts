@@ -41,7 +41,10 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
   const inputPath = attachment.name;
   const mp3Path = `${inputPath}.mp3`;
 
-  const startReply = await message.reply({ content: conversionStart, failIfNotExists: false });
+  const hasInlineFlags = /\b(clock|layout|type)=/i.test(message.content ?? "");
+  const flagsFromCommand = hasInlineFlags ? "\n✅ AY flags set for this message." : "";
+
+  const startReply = await message.reply({ content: `${conversionStart}${flagsFromCommand}`, failIfNotExists: false });
 
   const buffer = await downloadToBuffer(attachment.url);
   writeBinaryFile(inputPath, buffer);

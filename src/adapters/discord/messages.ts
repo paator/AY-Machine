@@ -18,21 +18,29 @@ export function conversionErrorMessage(error: unknown): string {
   return `🤖 An error occurred during the conversion process. Please try again. ${String(error)}`;
 }
 
-export const helpMessage = `
+import { commonAYMChipFrequencies, commonAYMLayouts } from "../../config/constants.js";
+
+export function buildHelpMessage(): string {
+  const presets = commonAYMChipFrequencies
+    .map(([name, hz]) => `${name}=${hz}`)
+    .join(", ");
+  const layouts = commonAYMLayouts.join(", ");
+
+  return `
 AY Machine – chiptune to MP3 bot
 
 Usage:
 - Attach a supported chiptune file and the bot will convert it automatically.
-- To skip conversion for a specific message, include: !aym ignore (preferred) or legacy: $aymignorefile
-- To control AY options in files compatible with zxtune, use:
-  !aym clock=<chip|hz>, layout=<abc|acb|bac|bca|cba|cab|mono>, type=<ay|ym>
+- To control AY options in files compatible with zxtune (e.g. .pt3), put flags anywhere in your message, no prefix required:
+  clock=<chip_preset|hz> layout=<${layouts}> type=<ay|ym>
+- To skip conversion for a specific attached track, include "ignore" anywhere in your message
+
+Current AY chip presets:
+  ${presets}
 
 Examples:
-- !aym clock=zx layout=abc
-- !aym clock=1750000 type=ym
-
-Notes:
-- You can still place flags directly in the message without !aym for backward compatibility.
-- Supported flags: clock, layout, type (ay|ym).
-- Help: !aym help
+- clock=zx layout=abc
+- clock=1.75 type=ym
+- clock=1750000
 `;
+}
