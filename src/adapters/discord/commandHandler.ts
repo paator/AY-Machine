@@ -21,6 +21,7 @@ export function parseCommand(message: Message): ParsedCommand {
     const sub = rest[0]?.toLowerCase();
     if (sub === "help") return { kind: "aym-help" };
     if (sub === "ignore") return { kind: "aym-ignore" };
+    if (!args) return { kind: "aym-help" };
     return { kind: "aym-flags", flagsText: args };
   }
   return { kind: "none" };
@@ -40,7 +41,7 @@ export async function handleCommand(message: Message): Promise<"handled" | "pass
     case "aym-flags": {
       parseUserFlags(parsed.flagsText);
       await message.reply({ content: "✅ AY flags set for this message.", failIfNotExists: false });
-      return "handled";
+      return "passthrough";
     }
     default:
       return "passthrough";
