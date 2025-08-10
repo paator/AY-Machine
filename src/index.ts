@@ -6,18 +6,18 @@ import { BOT_TOKEN } from "./config/env.js";
 
 const client = createDiscordClient();
 
-client.on("ready", () => {
+client.on("ready", async () => {
   console.log("Bot operational and ready to process commands.");
+  try {
+    await registerSlashCommands(client);
+    console.log("Slash commands registered.");
+  } catch (err) {
+    console.error("Failed to register slash commands:", err);
+  }
 });
 
 checkDependencies();
 registerMessageHandler(client);
 registerSlashHandler(client);
 
-client.login(BOT_TOKEN()).then(async () => {
-  try {
-    await registerSlashCommands(client);
-  } catch (err) {
-    console.error("Failed to register slash commands:", err);
-  }
-});
+client.login(BOT_TOKEN());

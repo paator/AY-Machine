@@ -1,13 +1,25 @@
-import type { Client, ChatInputCommandInteraction } from "discord.js";
+import type { Client, ChatInputCommandInteraction, ApplicationCommandDataResolvable } from "discord.js";
 import { buildHelpMessage } from "./messages.js";
+import { SLASH_GUILD_ID } from "../../config/env.js";
 
 export async function registerSlashCommands(client: Client): Promise<void> {
-  await client.application?.commands.set([
+  const commands: ApplicationCommandDataResolvable[] = [
     {
       name: "help",
       description: "Show AY Machine help and usage",
+      dmPermission: true,
+      defaultMemberPermissions: null,
+      type: 1
     },
-  ]);
+  ];
+
+  const guildId = SLASH_GUILD_ID();
+  if (guildId) {
+    await client.application?.commands.set([], guildId);
+    await client.application?.commands.set(commands, guildId);
+  } else {
+    await client.application?.commands.set(commands);
+  }
 }
 
 export function registerSlashHandler(client: Client): void {
