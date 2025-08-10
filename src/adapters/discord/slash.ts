@@ -15,6 +15,7 @@ export async function registerSlashCommands(client: Client): Promise<void> {
 
   const guildId = SLASH_GUILD_ID();
   if (guildId) {
+    await client.application?.commands.set([]);
     await client.application?.commands.set([], guildId);
     await client.application?.commands.set(commands, guildId);
   } else {
