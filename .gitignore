@@ -1,5 +1,6 @@
 node_modules
 tools
+dist
 .env
 .directory
 usage_log.json
