@@ -64,7 +64,6 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
     console.error("Error during conversion:", error);
     await startReply.edit(conversionErrorMessage(error));
   } finally {
-    // Swallow errors on cleanup, but avoid empty catch blocks
     try {
       removeFile(inputPath);
     } catch (err) {
