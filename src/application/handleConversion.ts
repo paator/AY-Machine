@@ -15,9 +15,11 @@ import {
   conversionSuccessMessage,
 } from "../adapters/discord/messages.js";
 import { logUsage } from "../core/usageLogger.js";
+import { reencodeMP3 } from "../converters/shared.js";
+import { FileTooLargeError } from "../domain/errors.js";
 
 const DISCORD_FILE_SIZE_LIMIT_ERROR = 40005;
-const BITRATE_SEQUENCE = [320, 256, 192, 160];
+const BITRATE_SEQUENCE = [320, 256, 192, 160, 128];
 
 export async function handleMessageWithAttachment(message: Message): Promise<void> {
   const attachment = message.attachments.first();
@@ -83,14 +85,9 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
         ) {
           currentBitrateIndex++;
           usedBitrate = BITRATE_SEQUENCE[currentBitrateIndex];
-          console.log(`File too large for Discord. Retrying with ${usedBitrate}kbps bitrate.`);
+          console.log(`File too large for Discord. Reencoding with ${usedBitrate}kbps bitrate.`);
           
-          await dispatchConversion({ 
-            inputPath, 
-            extension, 
-            flags, 
-            bitrate: usedBitrate 
-          });
+          reencodeMP3(producedMp3Path, producedMp3Path, usedBitrate);
           
           mp3Buffer = readBinaryFile(producedMp3Path);
         } else {
@@ -101,7 +98,7 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
     }
 
     if (!success) {
-      throw new Error("Failed to upload file even with lowest bitrate. File may be too large for Discord.");
+      throw new FileTooLargeError();
     }
   } catch (error) {
     console.error("Error during conversion:", error);

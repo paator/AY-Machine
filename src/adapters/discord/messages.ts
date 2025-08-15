@@ -1,3 +1,6 @@
+import { FileTooLargeError } from "../../domain/errors.js";
+import { commonAYMChipFrequencies, commonAYMLayouts } from "../../config/constants.js";
+
 export const conversionStart =
   "🤖 Initiating file conversion to format audible by humans. Please standby...";
 
@@ -21,10 +24,11 @@ export function conversionSuccessMessage(artist?: string, title?: string, reduce
 }
 
 export function conversionErrorMessage(error: unknown): string {
+  if (error instanceof FileTooLargeError) {
+    return `⚠️ **File Size Error**: The converted audio is too large to send via Discord even at the very low bitrate.`;
+  }
   return `🤖 An error occurred during the conversion process. Please try again. ${String(error)}`;
 }
-
-import { commonAYMChipFrequencies, commonAYMLayouts } from "../../config/constants.js";
 
 export function buildHelpMessage(): string {
   const presets = commonAYMChipFrequencies
