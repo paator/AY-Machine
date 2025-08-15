@@ -27,7 +27,14 @@ export function conversionErrorMessage(error: unknown): string {
   if (error instanceof FileTooLargeError) {
     return `⚠️ **File Size Error**: The converted audio is too large to send via Discord even at the very low bitrate.`;
   }
-  return `🤖 An error occurred during the conversion process. Please try again. ${String(error)}`;
+  
+  const errorMessage = String(error);
+  
+  if (errorMessage.includes("ffmpeg") && errorMessage.includes("Command failed")) {
+    return `🤖 **Conversion Error**: There was a problem processing your audio file. The conversion tool encountered an error. Please try again with a different file.`;
+  }
+  
+  return `🤖 An error occurred during the conversion process. Please try again. ${errorMessage}`;
 }
 
 export function buildHelpMessage(): string {

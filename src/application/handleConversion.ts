@@ -87,9 +87,21 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
           usedBitrate = BITRATE_SEQUENCE[currentBitrateIndex];
           console.log(`File too large for Discord. Reencoding with ${usedBitrate}kbps bitrate.`);
           
-          reencodeMP3(producedMp3Path, producedMp3Path, usedBitrate);
-          
-          mp3Buffer = readBinaryFile(producedMp3Path);
+          try {
+            const originalMp3Copy = `${producedMp3Path}.original`;
+            
+            const originalBuffer = readBinaryFile(producedMp3Path);
+            writeBinaryFile(originalMp3Copy, originalBuffer);
+            
+            reencodeMP3(producedMp3Path, producedMp3Path, usedBitrate);
+            
+            mp3Buffer = readBinaryFile(producedMp3Path);
+            
+            safeRemoveFile(originalMp3Copy);
+          } catch (ffmpegError) {
+            console.error(`Error during reencoding: ${ffmpegError}`);
+            throw new Error(`Failed to reencode audio file at ${usedBitrate}kbps.`);
+          }
         } else {
           //not a file size error or we've exhausted all bitrates
           throw error;
