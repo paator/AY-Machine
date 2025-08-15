@@ -1,17 +1,23 @@
 export const conversionStart =
   "🤖 Initiating file conversion to format audible by humans. Please standby...";
 
-export function conversionSuccessMessage(artist?: string, title?: string): string {
+export function conversionSuccessMessage(artist?: string, title?: string, reducedBitrate?: number): string {
+  let message = "";
   if (artist && title) {
-    return `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`;
+    message = `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`;
+  } else if (artist) {
+    message = `🎶 Your track by ${artist} is ready for listening! 🎧🔥`;
+  } else if (title) {
+    message = `🎶 Your track "${title}" is ready for listening! 🎧🔥`;
+  } else {
+    message = `🎶 Your track is ready for listening! 🎧🔥`;
   }
-  if (artist) {
-    return `🎶 Your track by ${artist} is ready for listening! 🎧🔥`;
+
+  if (reducedBitrate) {
+    message += `\n⚠️ Due to Discord file size limits, the audio quality was reduced to ${reducedBitrate}kbps.`;
   }
-  if (title) {
-    return `🎶 Your track "${title}" is ready for listening! 🎧🔥`;
-  }
-  return `🎶 Your track is ready for listening! 🎧🔥`;
+
+  return message;
 }
 
 export function conversionErrorMessage(error: unknown): string {

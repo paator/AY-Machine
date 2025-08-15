@@ -8,6 +8,7 @@ export type ConversionRequest = {
   inputPath: string;
   extension: string; // already uppercased
   flags: UserFlags;
+  bitrate?: number;
 };
 
 export type ConversionResult = {
