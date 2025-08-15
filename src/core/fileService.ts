@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, rmSync } from "fs";
+import { writeFileSync, readFileSync, rmSync, existsSync } from "fs";
 import fetch from "node-fetch";
 
 export async function downloadToBuffer(url: string): Promise<Buffer> {
@@ -16,5 +16,15 @@ export function readBinaryFile(path: string): Buffer {
 }
 
 export function removeFile(path: string): void {
-  rmSync(path);
+  if (existsSync(path)) {
+    rmSync(path);
+  }
+}
+
+export function safeRemoveFile(path: string): void {
+  try {
+    removeFile(path);
+  } catch (err) {
+    console.error(`Failed to remove file: ${path}`, err);
+  }
 }

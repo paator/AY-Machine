@@ -3,7 +3,7 @@ import type { Message } from "discord.js";
 import {
   downloadToBuffer,
   readBinaryFile,
-  removeFile,
+  safeRemoveFile,
   writeBinaryFile,
 } from "../core/fileService.js";
 import { parseUserFlags } from "../core/parseUserFlags.js";
@@ -40,6 +40,7 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
 
   const inputPath = attachment.name;
   const mp3Path = `${inputPath}.mp3`;
+  const wavPath = `${inputPath}.wav`;
 
   const hasInlineFlags = /\b(clock|layout|type)=/i.test(message.content ?? "");
   const flagsFromCommand = hasInlineFlags ? "\n✅ AY flags set for this message." : "";
@@ -64,15 +65,8 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
     console.error("Error during conversion:", error);
     await startReply.edit(conversionErrorMessage(error));
   } finally {
-    try {
-      removeFile(inputPath);
-    } catch (err) {
-      void err;
-    }
-    try {
-      removeFile(mp3Path);
-    } catch (err) {
-      void err;
-    }
+    safeRemoveFile(inputPath);
+    safeRemoveFile(mp3Path);
+    safeRemoveFile(wavPath);
   }
 }
