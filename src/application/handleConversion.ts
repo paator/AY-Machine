@@ -43,7 +43,8 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
     attachment.name,
   );
 
-  const inputPath = attachment.name;
+  const uniquePrefix = `${message.id}_${message.channelId}_${Date.now()}`;
+  const inputPath = `${uniquePrefix}_${attachment.name}`;
   const mp3Path = `${inputPath}.mp3`;
   const wavPath = `${inputPath}.wav`;
 
