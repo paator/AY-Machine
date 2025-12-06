@@ -2,6 +2,7 @@ import {
   supportedArkosFormats,
   supportedChipnsfxFormats,
   supportedFurnaceFormats,
+  supportedOpenMPTFormats,
   supportedPSGplayFormats,
   supportedZXTuneFormats,
 } from "../config/constants.js";
@@ -11,6 +12,7 @@ import { convertWithFurnace } from "./furnace.js";
 import { convertWithChipnsfx } from "./chipnsfx.js";
 import { convertWithPSGplay } from "./psgplay.js";
 import { convertWithArkos } from "./arkos.js";
+import { convertWithOpenMPT } from "./openmpt.js";
 
 export async function dispatchConversion(request: ConversionRequest): Promise<ConversionResult> {
   const { extension } = request;
@@ -19,5 +21,6 @@ export async function dispatchConversion(request: ConversionRequest): Promise<Co
   if (supportedChipnsfxFormats.has(extension)) return convertWithChipnsfx(request);
   if (supportedPSGplayFormats.has(extension)) return convertWithPSGplay(request);
   if (supportedArkosFormats.has(extension)) return convertWithArkos(request);
+  if (supportedOpenMPTFormats.has(extension)) return convertWithOpenMPT(request);
   throw new Error(`Unsupported extension: ${extension}`);
 }
