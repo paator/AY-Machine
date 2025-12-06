@@ -12,6 +12,7 @@ The bot is also modular as well, meaning the code can be changed to support othe
 - arkos tracker: https://www.julien-nevo.com/arkostracker/
 - psgplay: https://github.com/frno7/psgplay
 - ffmpeg: https://ffmpeg.org/
+- openmpt123: https://lib.openmpt.org/libopenmpt/
 
 AY machine uses these CLIs in order to render the tracks.
 They have to be placed in a separate "tools" folder .
