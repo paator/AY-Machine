@@ -5,6 +5,7 @@ import {
   supportedFurnaceFormats,
   supportedPSGplayFormats,
   supportedZXTuneFormats,
+  supportedOpenMPTFormats
 } from "../../config/constants.js";
 import { handleMessageWithAttachment } from "../../application/handleConversion.js";
 
@@ -27,7 +28,8 @@ export function registerMessageHandler(client: Client): void {
       supportedFurnaceFormats.has(extension) ||
       supportedChipnsfxFormats.has(extension) ||
       supportedPSGplayFormats.has(extension) ||
-      supportedArkosFormats.has(extension)
+      supportedArkosFormats.has(extension) ||
+      supportedOpenMPTFormats.has(extension)
     ) {
       await handleMessageWithAttachment(message);
     }
