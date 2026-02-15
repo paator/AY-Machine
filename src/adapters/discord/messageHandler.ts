@@ -3,9 +3,10 @@ import {
   supportedArkosFormats,
   supportedChipnsfxFormats,
   supportedFurnaceFormats,
+  supportedMahTrackerFormats,
+  supportedOpenMPTFormats,
   supportedPSGplayFormats,
   supportedZXTuneFormats,
-  supportedOpenMPTFormats
 } from "../../config/constants.js";
 import { handleMessageWithAttachment } from "../../application/handleConversion.js";
 
@@ -24,12 +25,13 @@ export function registerMessageHandler(client: Client): void {
     if (!attachment) return;
     const extension = attachment.name.split(".").pop()?.toUpperCase() ?? "";
     if (
-      supportedZXTuneFormats.has(extension) ||
-      supportedFurnaceFormats.has(extension) ||
-      supportedChipnsfxFormats.has(extension) ||
-      supportedPSGplayFormats.has(extension) ||
       supportedArkosFormats.has(extension) ||
-      supportedOpenMPTFormats.has(extension)
+      supportedChipnsfxFormats.has(extension) ||
+      supportedFurnaceFormats.has(extension) ||
+      supportedMahTrackerFormats.has(extension) ||
+      supportedOpenMPTFormats.has(extension) ||
+      supportedPSGplayFormats.has(extension) ||
+      supportedZXTuneFormats.has(extension)
     ) {
       await handleMessageWithAttachment(message);
     }

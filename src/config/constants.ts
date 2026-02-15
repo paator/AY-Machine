@@ -126,6 +126,7 @@ export const supportedFurnaceFormats = new Set<string>(["FUR"]);
 export const supportedChipnsfxFormats = new Set<string>(["CHP"]);
 export const supportedPSGplayFormats = new Set<string>(["SNDH", "SND"]);
 export const supportedArkosFormats = new Set<string>(["AKS", "128", "SKS", "WYZ"]);
+export const supportedMahTrackerFormats = new Set<string>(["MAH"]);
 
 
 export const commonAYMChipFrequencies: Array<[string, string]> = [
