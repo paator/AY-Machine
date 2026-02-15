@@ -6,9 +6,15 @@ export function parseUserFlags(messageContent: string | null | undefined): UserF
   const def_aymLayout = 0;
   const def_aymType = 0;
 
+  const def_openMPTStereoSeparation = 100;
+  const def_openMPTUseInterpolation = true;
+
   let aymClockRate: number | string = def_aymClockRate;
   let aymLayout = def_aymLayout;
   let aymType = def_aymType;
+
+  let openMPTStereoSeparation: number = def_openMPTStereoSeparation;
+  let openMPTUseInterpolation: boolean = def_openMPTUseInterpolation;
 
   if (messageContent) {
     // Accept either comma-separated (a=b,c=d) or space-separated (a=b c=d)
@@ -45,8 +51,19 @@ export function parseUserFlags(messageContent: string | null | undefined): UserF
         if (value === "ym") aymType = 1;
         if (value === "ay") aymType = 0;
       }
+
+      if (key === "noip") {
+        openMPTUseInterpolation = false;
+      }
+
+      if (key === "stereo") {
+        const val = Number(value);
+        if (Number.isFinite(val) && val >= 0 && val <= 100) {
+          openMPTStereoSeparation = Number(value);
+        }
+      }
     }
   }
 
-  return { aymClockRate, aymLayout, aymType };
+  return { aymClockRate, aymLayout, aymType, openMPTStereoSeparation, openMPTUseInterpolation };
 }
