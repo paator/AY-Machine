@@ -4,14 +4,31 @@ import { commonAYMChipFrequencies, commonAYMLayouts } from "../../config/constan
 export const conversionStart =
   "🤖 Initiating file conversion to format audible by humans. Please standby...";
 
-export function conversionSuccessMessage(artist?: string, title?: string, reducedBitrate?: number): string {
+const INTERNAL_TITLE_PATTERN = /^\d+_\d+_\d+_/;
+
+function isInternalTitle(title: string | undefined): boolean {
+  return !!title && INTERNAL_TITLE_PATTERN.test(title);
+}
+
+export function conversionSuccessMessage(
+  artist?: string,
+  title?: string,
+  attachmentName?: string,
+  reducedBitrate?: number
+): string {
+  const displayTitle = title && !isInternalTitle(title)
+    ? title
+    : attachmentName
+      ? attachmentName.replace(/\.[^.]+$/, "")
+      : title ?? "Your track";
+
   let message = "";
-  if (artist && title) {
-    message = `🎶 Your track "${title}" by ${artist} is ready for listening! 🎧🔥`;
+  if (artist && displayTitle) {
+    message = `🎶 Your track "${displayTitle}" by ${artist} is ready for listening! 🎧🔥`;
   } else if (artist) {
     message = `🎶 Your track by ${artist} is ready for listening! 🎧🔥`;
-  } else if (title) {
-    message = `🎶 Your track "${title}" is ready for listening! 🎧🔥`;
+  } else if (displayTitle) {
+    message = `🎶 Your track "${displayTitle}" is ready for listening! 🎧🔥`;
   } else {
     message = `🎶 Your track is ready for listening! 🎧🔥`;
   }

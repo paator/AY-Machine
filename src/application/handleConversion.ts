@@ -71,8 +71,9 @@ export async function handleMessageWithAttachment(message: Message): Promise<voi
       try {
         await startReply.edit({
           content: conversionSuccessMessage(
-            artist, 
-            title, 
+            artist,
+            title,
+            attachment.name,
             currentBitrateIndex > 0 ? usedBitrate : undefined
           ),
           files: [new AttachmentBuilder(mp3Buffer, { name: `${attachment.name}.mp3` })],
