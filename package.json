@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "build:wasm": "cd bitphase && pnpm install && pnpm build:wasm",
-    "btp-to-wav": "cd bitphase && pnpm btp-to-wav",
+    "build:wasm": "cd bitphase && pnpm install --prod && bash build-wasm.sh",
+    "btp-to-wav": "cd bitphase && ../node_modules/.bin/tsx cli/btp-to-wav.ts",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",

@@ -13,7 +13,8 @@ export async function convertWithBitphase(request: ConversionRequest): Promise<C
   const absWav = path.resolve(process.cwd(), wavPath);
 
   const bitphasePath = path.resolve(process.cwd(), BITPHASE_DIR);
-  const command = `cd "${bitphasePath}" && pnpm btp-to-wav "${absInput}" "${absWav}"`;
+  const tsxPath = path.join(process.cwd(), "node_modules", ".bin", "tsx");
+  const command = `cd "${bitphasePath}" && "${tsxPath}" cli/btp-to-wav.ts "${absInput}" "${absWav}"`;
 
   try {
     execSync(command, {
@@ -27,7 +28,10 @@ export async function convertWithBitphase(request: ConversionRequest): Promise<C
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[bitphase] stderr:", stderr);
     console.error("[bitphase] stdout:", stdout);
-    throw new Error(`BTP conversion failed: ${msg}${stderr ? `\n${stderr}` : ""}`);
+    const shortMsg = msg.includes("jszip") || msg.includes("ERR_MODULE_NOT_FOUND")
+      ? "Bitphase dependencies missing. Run: cd bitphase && pnpm install"
+      : msg.split("\n")[0] ?? msg;
+    throw new Error(shortMsg);
   }
 
   convertToMp3(wavPath, mp3Path, bitrate);
