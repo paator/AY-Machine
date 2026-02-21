@@ -1,5 +1,5 @@
 import path from "node:path";
-import { runCommandSync } from "../core/processRunner.js";
+import { execSync } from "child_process";
 import { BITPHASE_DIR } from "../config/constants.js";
 import type { ConversionRequest, ConversionResult } from "../domain/types.js";
 import { convertToMp3 } from "./shared.js";
@@ -12,8 +12,24 @@ export async function convertWithBitphase(request: ConversionRequest): Promise<C
   const absInput = path.resolve(process.cwd(), inputPath);
   const absWav = path.resolve(process.cwd(), wavPath);
 
-  const command = `cd ${BITPHASE_DIR} && pnpm btp-to-wav "${absInput}" "${absWav}"`;
-  runCommandSync(command);
+  const bitphasePath = path.resolve(process.cwd(), BITPHASE_DIR);
+  const command = `cd "${bitphasePath}" && pnpm btp-to-wav "${absInput}" "${absWav}"`;
+
+  try {
+    execSync(command, {
+      stdio: "pipe",
+      encoding: "utf-8",
+      maxBuffer: 128 * 1024 * 1024,
+    });
+  } catch (err) {
+    const stderr = err instanceof Error && "stderr" in err ? String((err as { stderr?: Buffer | string }).stderr) : "";
+    const stdout = err instanceof Error && "stdout" in err ? String((err as { stdout?: Buffer | string }).stdout) : "";
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[bitphase] stderr:", stderr);
+    console.error("[bitphase] stdout:", stdout);
+    throw new Error(`BTP conversion failed: ${msg}${stderr ? `\n${stderr}` : ""}`);
+  }
+
   convertToMp3(wavPath, mp3Path, bitrate);
   return { mp3Path };
 }
