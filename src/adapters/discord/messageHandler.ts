@@ -1,6 +1,7 @@
 import type { Client, Message } from "discord.js";
 import {
   supportedArkosFormats,
+  supportedBitphaseFormats,
   supportedChipnsfxFormats,
   supportedFurnaceFormats,
   supportedMahTrackerFormats,
@@ -26,6 +27,7 @@ export function registerMessageHandler(client: Client): void {
     const extension = attachment.name.split(".").pop()?.toUpperCase() ?? "";
     if (
       supportedArkosFormats.has(extension) ||
+      supportedBitphaseFormats.has(extension) ||
       supportedChipnsfxFormats.has(extension) ||
       supportedFurnaceFormats.has(extension) ||
       supportedMahTrackerFormats.has(extension) ||
