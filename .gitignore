@@ -4,3 +4,15 @@ dist
 .env
 .directory
 usage_log.json
+
+# pnpm
+.pnpm-store
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Test coverage
+coverage

@@ -13,14 +13,21 @@ The bot is also modular as well, meaning the code can be changed to support othe
 - psgplay: https://github.com/frno7/psgplay
 - ffmpeg: https://ffmpeg.org/
 - openmpt123: https://lib.openmpt.org/libopenmpt/
+- bitphase: https://github.com/paator/bitphase (BTP format)
 
 AY machine uses these CLIs in order to render the tracks.
-They have to be placed in a separate "tools" folder .
+They have to be placed in a separate "tools" folder (except bitphase, which is a git submodule).
 
 ### Setup
 
 - `BOT_TOKEN` must be available in env (supports `.env`).
-- `npm install`
+- `npm install` (or `pnpm install`)
+- Add Bitphase for BTP support:
+  ```bash
+  git submodule add https://github.com/paator/bitphase.git bitphase
+  pnpm build:wasm
+  ```
+  (Requires Emscripten SDK for building ayumi.wasm.)
 
 ### Run
 

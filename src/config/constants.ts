@@ -1,4 +1,5 @@
 export const TOOLS_DIR = "./tools/";
+export const BITPHASE_DIR = "./bitphase/";
 
 export const supportedZXTuneFormats = new Set<string>([
   "ASC",
@@ -121,13 +122,12 @@ export const supportedOpenMPTFormats = new Set<string>([
   "MMCMP",
 ]);
 
-
 export const supportedFurnaceFormats = new Set<string>(["FUR"]);
 export const supportedChipnsfxFormats = new Set<string>(["CHP"]);
 export const supportedPSGplayFormats = new Set<string>(["SNDH", "SND"]);
 export const supportedArkosFormats = new Set<string>(["AKS", "128", "SKS", "WYZ"]);
 export const supportedMahTrackerFormats = new Set<string>(["MAH"]);
-
+export const supportedBitphaseFormats = new Set<string>(["BTP"]);
 
 export const commonAYMChipFrequencies: Array<[string, string]> = [
   ["zx", "1773400"],
